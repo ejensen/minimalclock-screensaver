@@ -1,0 +1,5 @@
+NAME MinimalClock.src
+
+EXPORTS
+	ScreenSaverProcW
+	ScreenSaverConfigureDialog

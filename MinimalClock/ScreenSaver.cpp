@@ -1,5 +1,4 @@
 #define VC_EXTRALEAN
-//#define WIN32_LEAN_AND_MEAN
 #define _USE_MATH_DEFINES
 
 #include <windows.h>
@@ -17,21 +16,21 @@
 using namespace Gdiplus;
 #pragma comment(lib, "gdiplus.lib")
 
-HDC m_hDC = NULL;
-HBITMAP m_hBmp = NULL;
-HFONT m_hFontResource = NULL;
-HFONT m_hFont = NULL;
-HFONT m_hSmallFont = NULL;
-SIZE m_screenSize;
-SIZE m_textSize;
-BOOL m_is24Hour;
+static HDC g_hDC = NULL;
+static HBITMAP g_hBmp = NULL;
+static HFONT g_hFontResource = NULL;
+static HFONT g_hLargeFont = NULL;
+static HFONT g_hSmallFont = NULL;
+static SIZE g_screenSize;
+static SIZE g_largeTextSize;
+static BOOL g_is24Hour;
+
+static GdiplusStartupInput g_gdiplusStartupInput;
+static ULONG_PTR g_gdiplusToken;
 
 TCHAR szAppName[] = L"MinimalClock";
 TCHAR szIniFile[] = L"MinClock.ini";
-const TCHAR m_szOptionName[] = L"Use24Hour";
-
-GdiplusStartupInput gdiplusStartupInput;
-ULONG_PTR gdiplusToken;
+const TCHAR szOptionName[] = L"Use24Hour";
 
 #define DRAW_TIMER 0x1
 
@@ -50,20 +49,20 @@ LRESULT WINAPI ScreenSaverProcW(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	case WM_DESTROY:
 		{
 			KillTimer(hWnd, DRAW_TIMER);
-			ReleaseDC(hWnd, m_hDC);
-			DeleteObject(m_hDC);
-			DeleteObject(m_hBmp);
-			DeleteObject(m_hFont);
-			DeleteObject(m_hSmallFont);
-			RemoveFontMemResourceEx(m_hFontResource);
-			GdiplusShutdown(gdiplusToken);
+			ReleaseDC(hWnd, g_hDC);
+			DeleteObject(g_hDC);
+			DeleteObject(g_hBmp);
+			DeleteObject(g_hLargeFont);
+			DeleteObject(g_hSmallFont);
+			RemoveFontMemResourceEx(g_hFontResource);
+			GdiplusShutdown(g_gdiplusToken);
 			break;
 		}
 	case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
 			HDC hdc = BeginPaint(hWnd, &ps);
-			BitBlt(hdc, 0, 0, m_screenSize.cx, m_screenSize.cy, m_hDC, 0, 0, SRCCOPY);
+			BitBlt(hdc, 0, 0, g_screenSize.cx, g_screenSize.cy, g_hDC, 0, 0, SRCCOPY);
 			EndPaint(hWnd, &ps);
 			return 0;
 			break;
@@ -83,57 +82,56 @@ void LoadConfiguration()
 {
 	LoadString(hMainInstance, idsAppName, szAppName, APPNAMEBUFFERLEN * sizeof(TCHAR));
 	LoadString(hMainInstance, idsIniFile, szIniFile, MAXFILELEN * sizeof(TCHAR));
-	m_is24Hour = GetPrivateProfileInt(szAppName, m_szOptionName, FALSE, szIniFile);
+	g_is24Hour = GetPrivateProfileInt(szAppName, szOptionName, FALSE, szIniFile);
 }
 
 void Init(HWND hWnd)
 {
 	LoadConfiguration();
 
-	m_screenSize.cx = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-	m_screenSize.cy = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+	GdiplusStartup(&g_gdiplusToken, &g_gdiplusStartupInput, NULL);
 
-	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
-
-	HMODULE hResInstance = NULL;
-	HRSRC hResource = FindResource(hResInstance, MAKEINTRESOURCE(IDR_FONT_GEOSANSLIGHT), L"BINARY");
-	if (hResource) 
-	{
-		HGLOBAL mem = LoadResource(hResInstance, hResource);
-		void *data = LockResource(mem);
-		size_t len = SizeofResource(hResInstance, hResource);
-
-		DWORD nFonts;
-		m_hFontResource = (HFONT)AddFontMemResourceEx(data, len, NULL, &nFonts);
-	}
+	g_screenSize.cx = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+	g_screenSize.cy = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 
 	HDC hDc = GetDC(hWnd);
-
-	m_hBmp = CreateCompatibleBitmap(hDc, m_screenSize.cx, m_screenSize.cy);
-
-	m_hDC = CreateCompatibleDC(hDc);
+	g_hBmp = CreateCompatibleBitmap(hDc, g_screenSize.cx, g_screenSize.cy);
+	g_hDC = CreateCompatibleDC(hDc);
 	ReleaseDC(hWnd, hDc);
+	SelectObject(g_hDC, g_hBmp);
 
-	SelectObject(m_hDC, m_hBmp);
+	SetTextColor(g_hDC, RGB(255, 255, 255));
+	SetBkColor(g_hDC, RGB(0, 0, 0));
 
-	LOGFONT lf;
-	memset(&lf, 0, sizeof(lf));
-	wcscpy_s(lf.lfFaceName, L"GeosansLight");
-	lf.lfQuality = ANTIALIASED_QUALITY;
-	lf.lfHeight = m_screenSize.cy / 5;
+	{	// Load Geo-sans Light font from application resources.
+		HMODULE hResInstance = NULL;
+		HRSRC hResource = FindResource(hResInstance, MAKEINTRESOURCE(IDR_FONT_GEOSANSLIGHT), L"BINARY");
+		if (hResource) 
+		{
+			HGLOBAL mem = LoadResource(hResInstance, hResource);
+			void *data = LockResource(mem);
+			size_t len = SizeofResource(hResInstance, hResource);
 
-	m_hFont = CreateFontIndirect(&lf);
+			DWORD nFonts;
+			g_hFontResource = (HFONT)AddFontMemResourceEx(data, len, NULL, &nFonts);
+		}
 
-	SelectObject(m_hDC, m_hFont);
+		LOGFONT lf;
+		memset(&lf, 0, sizeof(lf));
+		wcscpy_s(lf.lfFaceName, L"GeosansLight");
+		lf.lfQuality = ANTIALIASED_QUALITY;
+		lf.lfHeight = g_screenSize.cy / 5;
 
-	std::wstring strPlaceHolder(L"00:00:00");
-	GetTextExtentPoint32(m_hDC, strPlaceHolder.c_str(), strPlaceHolder.size(), &m_textSize);
+		g_hLargeFont = CreateFontIndirect(&lf);
 
-	lf.lfHeight = m_screenSize.cy / 28;
-	m_hSmallFont = CreateFontIndirect(&lf);
+		SelectObject(g_hDC, g_hLargeFont);
 
-	SetTextColor(m_hDC, RGB(255, 255, 255));
-	SetBkColor(m_hDC, RGB(0, 0, 0));
+		std::wstring strPlaceHolder(L"00:00:00");
+		GetTextExtentPoint32(g_hDC, strPlaceHolder.c_str(), strPlaceHolder.size(), &g_largeTextSize);
+
+		lf.lfHeight = g_screenSize.cy / 28;
+		g_hSmallFont = CreateFontIndirect(&lf);
+	}
 
 	SetTimer(hWnd, DRAW_TIMER, 1000, NULL);
 	UpdateFrame(hWnd);
@@ -141,45 +139,46 @@ void Init(HWND hWnd)
 
 void UpdateFrame(HWND hWnd)
 {
-	INT diameter = m_screenSize.cy / 25;
-	INT radius = diameter / 2;
-	INT gap = diameter / 5;
-	INT left = m_screenSize.cx - m_textSize.cx - m_textSize.cx / 8;
-	INT top = (m_screenSize.cy + m_textSize.cy) / 2 - diameter * 2;
-	INT centerX = left + radius;
-	INT centerY = top + radius;
-	INT lineWidth = radius / 4;
+	REAL clock_diameter = g_screenSize.cy / 25.0f;
+	REAL clock_left = g_screenSize.cx - g_largeTextSize.cx - g_largeTextSize.cx / 8.0f;
+	
+	{ 	// Draw analog clock
+		REAL clock_radius = clock_diameter / 2.0f;
+		REAL clock_top = (g_screenSize.cy + g_largeTextSize.cy) / 2.0f - clock_diameter * 2.0f;
+		REAL clock_centerX = clock_left + clock_radius;
+		REAL clock_centerY = clock_top + clock_radius;
+		REAL clock_handWidth = clock_radius / 4.0f;
+		REAL clock_handGap = clock_handWidth * 1.75;
 
-	{
-		Graphics graphics(m_hDC);
+		Graphics graphics(g_hDC);
 		graphics.SetSmoothingMode(SmoothingModeAntiAlias);
 		graphics.Clear(RGB(0, 0, 0));
 
-		Pen pen(Color(255,255,255), lineWidth);
+		Pen pen(Color(255,255,255), clock_handWidth + 1);
 		graphics.DrawEllipse(&pen, 
-			left,
-			top,
-			diameter,
-			diameter);
+			clock_left,
+			clock_top,
+			clock_diameter,
+			clock_diameter);
 
-		pen.SetWidth(lineWidth - 1);
+		pen.SetWidth(clock_handWidth - 0.5f);
 
 		graphics.DrawLine(&pen, 
-			centerX,
-			centerY + lineWidth / 4,
-			centerX,
-			centerY - (radius - gap));
+			clock_centerX,
+			clock_centerY + clock_handWidth / 4,
+			clock_centerX,
+			clock_centerY - clock_radius + clock_handGap);
 
 		const REAL angle = M_PI / 4;
 
 		graphics.DrawLine(&pen, 
-			(REAL)centerX,
-			(REAL)centerY,
-			centerX + cos(angle) * (radius - gap),
-			centerY + sin(angle) * (radius - gap));
+			clock_centerX,
+			clock_centerY,
+			clock_centerX + cos(angle) * (clock_radius - clock_handGap),
+			clock_centerY + sin(angle) * (clock_radius - clock_handGap));
 	}
 
-	{
+	{	// Draw time
 		const size_t bufferSize = 16;
 		TCHAR buffer[bufferSize];
 
@@ -189,21 +188,21 @@ void UpdateFrame(HWND hWnd)
 
 		localtime_s(&timeinfo, &rawtime);
 
-		wcsftime(buffer, bufferSize, m_is24Hour ? L"%H:%M:%S" : L"%I:%M:%S", &timeinfo);
+		wcsftime(buffer, bufferSize, g_is24Hour ? L"%H:%M:%S" : L"%I:%M:%S", &timeinfo);
 		std::wstring strval(buffer);
 
-		SelectObject(m_hDC, m_hFont);
-		TextOut(m_hDC, m_screenSize.cx - m_textSize.cx, (m_screenSize.cy - m_textSize.cy) / 2, strval.c_str(), strval.size());
+		SelectObject(g_hDC, g_hLargeFont);
+		TextOut(g_hDC, g_screenSize.cx - g_largeTextSize.cx, (g_screenSize.cy - g_largeTextSize.cy) / 2, strval.c_str(), strval.size());
 
-		if (!m_is24Hour)
-		{
+		if (!g_is24Hour)
+		{	// Draw AM/PM
 			wcsftime(buffer, bufferSize, L"%p", &timeinfo);
 			strval = buffer;
 
-			SelectObject(m_hDC, m_hSmallFont);
+			SelectObject(g_hDC, g_hSmallFont);
 			SIZE smallTextSize;
-			GetTextExtentPoint32(m_hDC, strval.c_str(), strval.size(), &smallTextSize);
-			TextOut(m_hDC, left - (smallTextSize.cx - diameter) / 2, (m_screenSize.cy - smallTextSize.cy) / 2, strval.c_str(), strval.size());
+			GetTextExtentPoint32(g_hDC, strval.c_str(), strval.size(), &smallTextSize);
+			TextOut(g_hDC, clock_left - (smallTextSize.cx - clock_diameter) / 2, (g_screenSize.cy - smallTextSize.cy) / 2, strval.c_str(), strval.size());
 		}
 	}
 
@@ -220,7 +219,7 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
 	case WM_INITDIALOG:
 		{
 			LoadConfiguration();
-			CheckDlgButton(hDlg, IDC_24HOUR_CHECK, m_is24Hour);
+			CheckDlgButton(hDlg, IDC_24HOUR_CHECK, g_is24Hour);
 			return TRUE;
 		}
 	case WM_COMMAND:
@@ -229,10 +228,10 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
 			{ 
 			case ID_OK:
 				{
-					m_is24Hour = IsDlgButtonChecked(hDlg, IDC_24HOUR_CHECK);
+					g_is24Hour = IsDlgButtonChecked(hDlg, IDC_24HOUR_CHECK);
 					TCHAR buffer[8];
-					_itow(m_is24Hour, buffer, 10);
-					WritePrivateProfileString(szAppName, m_szOptionName, buffer, szIniFile); 
+					_itow(g_is24Hour, buffer, 10);
+					WritePrivateProfileString(szAppName, szOptionName, buffer, szIniFile); 
 				}
 			case ID_CANCEL:
 				{

@@ -1,0 +1,9 @@
+
+/Release
+/Debug
+/ipch
+*.sdf
+*.opensdf
+*.aps
+*.suo
+*.temp

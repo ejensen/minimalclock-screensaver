@@ -2,6 +2,7 @@
 #define _USE_MATH_DEFINES
 
 #include <windows.h>
+#include <commctrl.h>
 #include <scrnsave.h>
 #include <gdiplus.h>
 #include <time.h>
@@ -80,8 +81,8 @@ LRESULT WINAPI ScreenSaverProcW(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 void LoadConfiguration() 
 {
-	LoadString(hMainInstance, idsAppName, szAppName, APPNAMEBUFFERLEN * sizeof(TCHAR));
-	LoadString(hMainInstance, idsIniFile, szIniFile, MAXFILELEN * sizeof(TCHAR));
+	/*LoadString(hMainInstance, idsAppName, szAppName, APPNAMEBUFFERLEN * sizeof(TCHAR));
+	LoadString(hMainInstance, idsIniFile, szIniFile, MAXFILELEN * sizeof(TCHAR));*/
 	g_is24Hour = GetPrivateProfileInt(szAppName, szOptionName, FALSE, szIniFile);
 }
 
@@ -91,8 +92,11 @@ void Init(HWND hWnd)
 
 	GdiplusStartup(&g_gdiplusToken, &g_gdiplusStartupInput, NULL);
 
-	g_screenSize.cx = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-	g_screenSize.cy = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+	RECT r;
+	GetClientRect(hWnd, &r);
+
+	g_screenSize.cy = r.bottom - r.top;
+	g_screenSize.cx = r.right - r.left;
 
 	HDC hDc = GetDC(hWnd);
 	g_hBmp = CreateCompatibleBitmap(hDc, g_screenSize.cx, g_screenSize.cy);
@@ -109,11 +113,14 @@ void Init(HWND hWnd)
 		if (hResource) 
 		{
 			HGLOBAL mem = LoadResource(hResInstance, hResource);
-			void *data = LockResource(mem);
-			size_t len = SizeofResource(hResInstance, hResource);
+			if (mem)
+			{
+				void *data = LockResource(mem);
+				size_t len = SizeofResource(hResInstance, hResource);
 
-			DWORD nFonts;
-			g_hFontResource = (HFONT)AddFontMemResourceEx(data, len, NULL, &nFonts);
+				DWORD nFonts;
+				g_hFontResource = (HFONT)AddFontMemResourceEx(data, len, NULL, &nFonts);
+			}
 		}
 
 		LOGFONT lf;
@@ -209,7 +216,6 @@ void UpdateFrame(HWND hWnd)
 	RECT r;
 	GetClientRect(hWnd, &r);
 	InvalidateRect(hWnd, &r, false);
-
 }
 
 BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*lParam*/)
@@ -219,6 +225,7 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
 	case WM_INITDIALOG:
 		{
 			LoadConfiguration();
+			InitCommonControls();
 			CheckDlgButton(hDlg, IDC_24HOUR_CHECK, g_is24Hour);
 			return TRUE;
 		}
@@ -239,6 +246,12 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
 					return TRUE; 
 				}
 			}
+			break;
+		}
+	case WM_CLOSE:
+		{
+			EndDialog(hDlg, FALSE); 
+			return TRUE; 
 		}
 	}
 	return FALSE;

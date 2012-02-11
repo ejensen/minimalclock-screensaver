@@ -146,16 +146,26 @@ void Init(HWND hWnd)
 
 void UpdateFrame(HWND hWnd)
 {
+	tm timeinfo;
+	time_t rawtime;
+	time(&rawtime);
+	localtime_s(&timeinfo, &rawtime);
+
 	REAL clock_diameter = g_screenSize.cy / 25.0f;
 	REAL clock_left = g_screenSize.cx - g_largeTextSize.cx - g_largeTextSize.cx / 8.0f;
 	
 	{ 	// Draw analog clock
 		REAL clock_radius = clock_diameter / 2.0f;
 		REAL clock_top = (g_screenSize.cy + g_largeTextSize.cy) / 2.0f - clock_diameter * 2.0f;
+
 		REAL clock_centerX = clock_left + clock_radius;
-		REAL clock_centerY = clock_top + clock_radius;
+		REAL clock_centerY = clock_top  + clock_radius;
+
 		REAL clock_handWidth = clock_radius / 4.0f;
 		REAL clock_handGap = clock_handWidth * 1.75;
+
+		REAL clock_minuteAngle = timeinfo.tm_min  / 60.0f * M_PI * 2 - M_PI_2;
+		REAL clock_hourAngle   = timeinfo.tm_hour / 12.0f * M_PI * 2 - M_PI_2 + clock_minuteAngle / 12;
 
 		Graphics graphics(g_hDC);
 		graphics.SetSmoothingMode(SmoothingModeAntiAlias);
@@ -169,31 +179,24 @@ void UpdateFrame(HWND hWnd)
 			clock_diameter);
 
 		pen.SetWidth(clock_handWidth - 0.5f);
-
-		graphics.DrawLine(&pen, 
-			clock_centerX,
-			clock_centerY + clock_handWidth / 4,
-			clock_centerX,
-			clock_centerY - clock_radius + clock_handGap);
-
-		const REAL angle = M_PI / 4;
+		pen.SetStartCap(LineCapRound);
 
 		graphics.DrawLine(&pen, 
 			clock_centerX,
 			clock_centerY,
-			clock_centerX + cos(angle) * (clock_radius - clock_handGap),
-			clock_centerY + sin(angle) * (clock_radius - clock_handGap));
+			clock_centerX + cos(clock_hourAngle) * (clock_radius - clock_handGap),
+			clock_centerY + sin(clock_hourAngle) * (clock_radius - clock_handGap));
+
+		graphics.DrawLine(&pen, 
+			clock_centerX,
+			clock_centerY,
+			clock_centerX + cos(clock_minuteAngle) * (clock_radius - clock_handGap),
+			clock_centerY + sin(clock_minuteAngle) * (clock_radius - clock_handGap));
 	}
 
 	{	// Draw time
 		const size_t bufferSize = 16;
 		TCHAR buffer[bufferSize];
-
-		tm timeinfo;
-		time_t rawtime;
-		time(&rawtime);
-
-		localtime_s(&timeinfo, &rawtime);
 
 		wcsftime(buffer, bufferSize, g_is24Hour ? L"%H:%M:%S" : L"%I:%M:%S", &timeinfo);
 		std::wstring strval(buffer);

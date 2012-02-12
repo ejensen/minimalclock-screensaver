@@ -230,7 +230,7 @@ void UpdateFrame(HWND hWnd)
 	InvalidateRect(hWnd, &r, false);
 }
 
-BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*lParam*/)
+BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch(message) 
 	{ 
@@ -259,6 +259,18 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
 			}
 			break;
 		}
+	case WM_NOTIFY:
+		{
+			LPNMHDR pnmh = (LPNMHDR) lParam;
+			if (pnmh->idFrom == IDC_SYSLINK_WEBSITE)
+			{
+				if ((pnmh->code == NM_CLICK) || (pnmh->code == NM_RETURN)) {
+					PNMLINK link = (PNMLINK) lParam;
+					ShellExecute(NULL, L"open", link->item.szUrl, NULL, NULL, SW_SHOWNORMAL);
+				}
+			}
+			break;
+		} 
 	case WM_CLOSE:
 		{
 			EndDialog(hDlg, FALSE); 

@@ -2,6 +2,7 @@
 Release*/
 Debug*/
 ipch*/
+_ReSharper*/
 *.sdf
 *.opensdf
 *.aps

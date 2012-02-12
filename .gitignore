@@ -1,12 +1,15 @@
 
-/Release
-/Debug
-/ipch
-/MinimalClock/Release
-/MinimalClock/Debug
+Release*/
+Debug*/
+ipch*/
 *.sdf
 *.opensdf
 *.aps
 *.suo
 *.temp
 *.log
+*.bak
+*.pch
+*.ilk
+*.cache
+*.sbr

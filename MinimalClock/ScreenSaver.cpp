@@ -126,6 +126,7 @@ void Init(HWND hWnd)
 				DWORD nFonts;
 				g_hFontResource = (HFONT)AddFontMemResourceEx(data, len, NULL, &nFonts);
 			}
+			DeleteObject(mem);
 		}
 
 		LOGFONT lf;
@@ -138,8 +139,10 @@ void Init(HWND hWnd)
 
 		SelectObject(g_hDC, g_hLargeFont);
 
-		std::wstring strPlaceHolder(TEXT("00:00:00"));
-		GetTextExtentPoint32(g_hDC, strPlaceHolder.c_str(), strPlaceHolder.size(), &g_largeTextSize);
+		const TCHAR szPlaceholder[] = TEXT("00:00:00");
+		GetTextExtentPoint32(g_hDC, szPlaceholder, sizeof(szPlaceholder) / sizeof(TCHAR) - 1, &g_largeTextSize);
+
+		g_largeTextSize.cx = g_largeTextSize.cx + g_largeTextSize.cx / 20;
 
 		lf.lfHeight = g_screenSize.cy / 28;
 		g_hSmallFont = CreateFontIndirect(&lf);

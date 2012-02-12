@@ -30,10 +30,12 @@ static BOOL g_AnimatedClockHands;
 static GdiplusStartupInput g_gdiplusStartupInput;
 static ULONG_PTR g_gdiplusToken;
 
-TCHAR szAppName[APPNAMEBUFFERLEN];// = L"MinimalClock";
-TCHAR szIniFile[MAXFILELEN];// = L"MinClock.ini";
-const TCHAR g_szFormatOptionName[] = L"Use24Hour";
-const TCHAR g_szClockHandOptionName[] = L"AnimatedClockHands";
+extern HINSTANCE hMainInstance;
+
+TCHAR szAppName[APPNAMEBUFFERLEN];
+TCHAR szIniFile[MAXFILELEN];
+const TCHAR szFormatOptionName[] = TEXT("Use24Hour");
+const TCHAR szClockHandOptionName[] = TEXT("AnimatedClockHands");
 
 #define DRAW_TIMER 0x1
 
@@ -83,10 +85,10 @@ LRESULT WINAPI ScreenSaverProcW(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 void LoadConfiguration() 
 {
-	LoadString(hMainInstance, idsAppName, szAppName, APPNAMEBUFFERLEN * sizeof(TCHAR));
-	LoadString(hMainInstance, idsIniFile, szIniFile, MAXFILELEN * sizeof(TCHAR));
-	g_is24Hour = GetPrivateProfileInt(szAppName, g_szFormatOptionName, FALSE, szIniFile);
-	g_AnimatedClockHands = GetPrivateProfileInt(szAppName, g_szClockHandOptionName, FALSE, szIniFile);
+	LoadString(hMainInstance, idsAppName, szAppName, APPNAMEBUFFERLEN);
+	LoadString(hMainInstance, idsIniFile, szIniFile, MAXFILELEN);
+	g_is24Hour = GetPrivateProfileInt(szAppName, szFormatOptionName, FALSE, szIniFile);
+	g_AnimatedClockHands = GetPrivateProfileInt(szAppName, szClockHandOptionName, FALSE, szIniFile);
 }
 
 void Init(HWND hWnd)
@@ -112,7 +114,7 @@ void Init(HWND hWnd)
 
 	{	// Load Geo-sans Light font from application resources.
 		HMODULE hResInstance = NULL;
-		HRSRC hResource = FindResource(hResInstance, MAKEINTRESOURCE(IDR_FONT_GEOSANSLIGHT), L"BINARY");
+		HRSRC hResource = FindResource(hResInstance, MAKEINTRESOURCE(IDR_FONT_GEOSANSLIGHT), TEXT("BINARY"));
 		if (hResource) 
 		{
 			HGLOBAL mem = LoadResource(hResInstance, hResource);
@@ -128,7 +130,7 @@ void Init(HWND hWnd)
 
 		LOGFONT lf;
 		memset(&lf, 0, sizeof(lf));
-		wcscpy_s(lf.lfFaceName, L"GeosansLight");
+		wcscpy_s(lf.lfFaceName, TEXT("GeosansLight"));
 		lf.lfQuality = ANTIALIASED_QUALITY;
 		lf.lfHeight = g_screenSize.cy / 5;
 
@@ -136,7 +138,7 @@ void Init(HWND hWnd)
 
 		SelectObject(g_hDC, g_hLargeFont);
 
-		std::wstring strPlaceHolder(L"00:00:00");
+		std::wstring strPlaceHolder(TEXT("00:00:00"));
 		GetTextExtentPoint32(g_hDC, strPlaceHolder.c_str(), strPlaceHolder.size(), &g_largeTextSize);
 
 		lf.lfHeight = g_screenSize.cy / 28;
@@ -207,7 +209,7 @@ void UpdateFrame(HWND hWnd)
 		const size_t nBufferSize = 16;
 		TCHAR szBuffer[nBufferSize];
 
-		wcsftime(szBuffer, nBufferSize, g_is24Hour ? L"%H:%M:%S" : L"%I:%M:%S", &timeinfo);
+		wcsftime(szBuffer, nBufferSize, g_is24Hour ? TEXT("%H:%M:%S") : TEXT("%I:%M:%S"), &timeinfo);
 		std::wstring strval(szBuffer);
 
 		SelectObject(g_hDC, g_hLargeFont);
@@ -215,7 +217,7 @@ void UpdateFrame(HWND hWnd)
 
 		if (!g_is24Hour)
 		{	// Draw AM/PM
-			wcsftime(szBuffer, nBufferSize, L"%p", &timeinfo);
+			wcsftime(szBuffer, nBufferSize, TEXT("%p"), &timeinfo);
 			strval = szBuffer;
 
 			SelectObject(g_hDC, g_hSmallFont);
@@ -230,6 +232,7 @@ void UpdateFrame(HWND hWnd)
 	InvalidateRect(hWnd, &r, false);
 }
 
+
 BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch(message) 
@@ -238,6 +241,7 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
 		{
 			LoadConfiguration();
 			CheckDlgButton(hDlg, IDC_24HOUR_CHECK, g_is24Hour);
+			CheckDlgButton(hDlg, IDC_ANIMATEHANDS_CHECK, g_AnimatedClockHands);
 			return TRUE;
 		}
 	case WM_COMMAND:
@@ -247,9 +251,14 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
 			case ID_OK:
 				{
 					TCHAR szBuffer[8];
+
 					g_is24Hour = IsDlgButtonChecked(hDlg, IDC_24HOUR_CHECK);
-					_itow(g_is24Hour, szBuffer, 10);
-					WritePrivateProfileString(szAppName, g_szFormatOptionName, szBuffer, szIniFile); 
+					_itow_s(g_is24Hour, szBuffer, 10);
+					WritePrivateProfileString(szAppName, szFormatOptionName, szBuffer, szIniFile);
+
+					g_AnimatedClockHands = IsDlgButtonChecked(hDlg, IDC_ANIMATEHANDS_CHECK);
+					_itow_s(g_AnimatedClockHands, szBuffer, 10);
+					WritePrivateProfileString(szAppName, szClockHandOptionName, szBuffer, szIniFile);
 				}
 			case ID_CANCEL:
 				{
@@ -261,12 +270,13 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hDlg, UINT message, WPARAM wParam, L
 		}
 	case WM_NOTIFY:
 		{
-			LPNMHDR pnmh = (LPNMHDR) lParam;
+			LPNMHDR pnmh = (LPNMHDR)lParam;
 			if (pnmh->idFrom == IDC_SYSLINK_WEBSITE)
 			{
-				if ((pnmh->code == NM_CLICK) || (pnmh->code == NM_RETURN)) {
-					PNMLINK link = (PNMLINK) lParam;
-					ShellExecute(NULL, L"open", link->item.szUrl, NULL, NULL, SW_SHOWNORMAL);
+				if ((pnmh->code == NM_CLICK) || (pnmh->code == NM_RETURN))
+				{
+					PNMLINK link = (PNMLINK)lParam;
+					ShellExecute(NULL, TEXT("open"), link->item.szUrl, NULL, NULL, SW_SHOWNORMAL);
 				}
 			}
 			break;

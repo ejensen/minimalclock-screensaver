@@ -83,6 +83,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>gdiplus.lib;scrnsavw.lib;ComCtl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>MinimalClock.def</ModuleDefinitionFile>
+      <EnableUAC>false</EnableUAC>
     </Link>
     <Manifest />
   </ItemDefinitionGroup>

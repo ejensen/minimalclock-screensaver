@@ -2,6 +2,8 @@
 /Release
 /Debug
 /ipch
+/MinimalClock/Release
+/MinimalClock/Debug
 *.sdf
 *.opensdf
 *.aps

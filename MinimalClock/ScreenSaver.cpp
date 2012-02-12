@@ -142,7 +142,7 @@ void Init(HWND hWnd)
 		const TCHAR szPlaceholder[] = TEXT("00:00:00");
 		GetTextExtentPoint32(g_hDC, szPlaceholder, sizeof(szPlaceholder) / sizeof(TCHAR) - 1, &g_largeTextSize);
 
-		g_largeTextSize.cx = g_largeTextSize.cx + g_largeTextSize.cx / 20;
+		g_largeTextSize.cx = g_largeTextSize.cx + g_largeTextSize.cx / 25;
 
 		lf.lfHeight = g_screenSize.cy / 28;
 		g_hSmallFont = CreateFontIndirect(&lf);
@@ -160,7 +160,7 @@ void UpdateFrame(HWND hWnd)
 	localtime_s(&timeinfo, &rawtime);
 
 	REAL clock_diameter = g_screenSize.cy / 25.0f;
-	REAL clock_left = g_screenSize.cx - g_largeTextSize.cx - g_largeTextSize.cx / 8.0f;
+	REAL clock_left = g_screenSize.cx - g_largeTextSize.cx - g_largeTextSize.cx / 9.0f;
 	
 	{ 	// Draw analog clock
 		REAL clock_radius = clock_diameter / 2.0f;
@@ -183,9 +183,9 @@ void UpdateFrame(HWND hWnd)
 
 		Graphics graphics(g_hDC);
 		graphics.SetSmoothingMode(SmoothingModeAntiAlias);
-		graphics.Clear(RGB(0, 0, 0));
+		graphics.Clear(Color(0, 0, 0));
 
-		Pen pen(Color(255,255,255), clock_handWidth + 1);
+		Pen pen(Color(255, 255, 255), clock_handWidth + 1);
 		graphics.DrawEllipse(&pen, 
 			clock_left,
 			clock_top,

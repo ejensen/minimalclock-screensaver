@@ -1,6 +1,6 @@
 # Minimal Clock Screensaver for Windows
 
-As the name says, it will show the time. Really simple, isn't it?
+As the name says, it shows the time. Really simple, isn't it?
 
 Tested to work with Windows XP and above.
 

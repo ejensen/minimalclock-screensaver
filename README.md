@@ -2,7 +2,9 @@
 
 As the name says, it shows the time. Really simple, isn't it?
 
-Tested to work with Windows XP and above.
+__[Download the installer](https://github.com/downloads/ejensen/minimalclock-screensaver/MinimalClock.exe)__
+
+Works with Windows XP and above.
 
 ## Credits
 

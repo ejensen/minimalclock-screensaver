@@ -1,6 +1,8 @@
 # Minimal Clock Screensaver for Windows
 
-As the name says, it shows the time. Really simple, isn't it?
+As the name says, it shows the time, minimally.
+
+![screenshot](http://yetilabs.org/minimalclock/img/preview_white.jpg)
 
 __[Download the installer](https://github.com/downloads/ejensen/minimalclock-screensaver/MinimalClock.exe)__
 

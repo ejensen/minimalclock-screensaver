@@ -1,8 +1,12 @@
 # Minimal Clock Screensaver for Windows
 
-As the name says, it shows the time. Really simple, isn't it?
+As the name suggests, it shows the time…minimally.
 
-Tested to work with Windows XP and above.
+![screenshot](http://yetilabs.org/minimalclock/img/preview_white.jpg)
+
+__[Download the screensaver here](http://yetilabs.org/minimalclock)__
+
+Works with Windows XP and above.
 
 ## Credits
 

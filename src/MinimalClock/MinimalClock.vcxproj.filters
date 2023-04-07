@@ -40,9 +40,4 @@
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Manifest Include="MinimalClock.scr.manifest">
-      <Filter>Resource Files</Filter>
-    </Manifest>
-  </ItemGroup>
 </Project>
